@@ -252,8 +252,8 @@ def test_SA(text):
     SA = array('l', [-1] * n)
     construct_suffix_array(text, SA, n, sigma)
     bt = bytearray(n)
-    # bwt(text, SA, bt, n)
-    # print(bt)
+    bwt(text, SA, bt, n)
+    print(bt)
     return SA
 
 
@@ -263,10 +263,11 @@ if __name__ == '__main__':
     from random import choice
 
     alpha = ['A', 'G', 'T', 'C']
-    input_size = 100_000
+    input_size = 300_000
 
-    for _ in range(2):
-        T = ''.join([choice(alpha) for i in range(input_size)])
+    for _ in range(1):
+        # T = ''.join([choice(alpha) for i in range(input_size)])
+        T = 'abaabacadabra'
         # print(SA)
         # with open('st.txt', 'r') as file:
         #     T = file.read().replace('\n', '')
@@ -274,17 +275,18 @@ if __name__ == '__main__':
         SA = test_SA(T)
         toc = datetime.now()
         print("SA-IS ran in", (toc - tic).total_seconds(), "seconds for a string of size", input_size)
-
-        tic1 = datetime.now()
-        T += '$'
-        n = len(T)
-        nsa = naive_suffix_array(T, n)
-        toc1 = datetime.now()
-        print("Inbuilt ran in", (toc1 - tic1).total_seconds(), "seconds for a string of size", input_size)
-
-        print(len(nsa))
-
-        if nsa != SA:
-            print(nsa)
-            print(SA)
-            print(T)
+        print(SA)
+        #
+        # tic1 = datetime.now()
+        # T += '$'
+        # n = len(T)
+        # nsa = naive_suffix_array(T, n)
+        # toc1 = datetime.now()
+        # print("Inbuilt ran in", (toc1 - tic1).total_seconds(), "seconds for a string of size", input_size)
+        #
+        # print(len(nsa))
+        #
+        # if nsa != SA:
+        #     print(nsa)
+        #     print(SA)
+        #     print(T)
