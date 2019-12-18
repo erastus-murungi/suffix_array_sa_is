@@ -75,7 +75,6 @@ def buckets(text):
     alpha = bytearray()
     bucket_sizes = array('L', [0] * SIGMA)
     for c in text:
-
         bucket_sizes[c] += 1
     for i in range(SIGMA):
         if bucket_sizes[i] != 0:
@@ -227,3 +226,7 @@ def test_SA(T):
 if __name__ == '__main__':
     T = 'ACGTGCCTAGCCTACCGTGCC'
     SA = test_SA(T)
+    with open('text.txt', 'r') as file:
+        data = file.read().replace('\n', '')
+    SA2 = test_SA(data)
+    print(SA2)
