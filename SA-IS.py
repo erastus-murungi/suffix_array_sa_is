@@ -1,12 +1,11 @@
 from array import array
-
+from datetime import datetime
 
 __author__ = 'Erastus Murungi'
 
 
 L_TYPE = ord('L')
 S_TYPE = ord('S')
-SIGMA = 256
 
 
 def is_lms(i, t):
@@ -14,7 +13,7 @@ def is_lms(i, t):
     return t[i] == S_TYPE and t[i - 1] == L_TYPE
 
 
-def print_(data: bytearray):
+def print_types(data: bytearray):
     """Simple method to the types of the characters of T"""
     print(data.decode('ascii'))
     print("".join(
@@ -31,7 +30,6 @@ def classify(text, n) -> bytearray:
         n: the length of text
     Returns:
         t: a bytearray object, where t[i] contains the type of text[i]
-
     """
     t = bytearray(n)
     t[-1] = S_TYPE
@@ -53,7 +51,7 @@ def find_lms_suffixes(t, n):
         n: the length of text and t
     """
     pos = array('l')
-    for i in range(n - 1, 0, -1):
+    for i in range(n):
         if t[i] == S_TYPE and t[i - 1] == L_TYPE:
             pos.append(i)
     return pos
@@ -70,13 +68,13 @@ def print_buckets(bucks):
     print(res)
 
 
-def buckets(text):
+def buckets(text, sigma):
     """Find the alphabet and the sizes of the bucket for each character in the text"""
-    alpha = bytearray()
-    bucket_sizes = array('L', [0] * SIGMA)
+    alpha = []
+    bucket_sizes = array('L', [0] * sigma)
     for c in text:
         bucket_sizes[c] += 1
-    for i in range(SIGMA):
+    for i in range(sigma):
         if bucket_sizes[i] != 0:
             alpha.append(i)
 
@@ -84,10 +82,10 @@ def buckets(text):
     return alpha, bucket_sizes
 
 
-def bucket_intervals(alpha, bucket_sizes):
+def bucket_intervals(alpha, bucket_sizes, sigma):
     """Computes the bucket intervals, i.e heads and tails"""
-    heads = array('l', [0] * SIGMA)
-    tails = array('l', [0] * SIGMA)
+    heads = array('l', [0] * sigma)
+    tails = array('l', [0] * sigma)
     j = 0
     for i in range(len(alpha)):
         heads[alpha[i]] = j
@@ -99,7 +97,7 @@ def bucket_intervals(alpha, bucket_sizes):
     return heads, tails
 
 
-def induced_sorting(lms, tails, heads, SA, type_suffix, text, n, alpha, bucket_sizes):
+def induced_sorting(lms, tails, heads, SA, type_suffix, text, n, m, alpha, bucket_sizes, sigma):
     """Inductively creates the suffix array based on LMS
     Args:
         lms: an array indicating the positions of LMS Blocks/Suffixes in text
@@ -111,12 +109,11 @@ def induced_sorting(lms, tails, heads, SA, type_suffix, text, n, alpha, bucket_s
         n: the length of the input 'text'
         alpha: an array of the alphabet of T in sorted order
         bucket_sizes: an array containing the sizes of each bucket: Used in resetting heads, tails
-
         """
-    for s in lms:  # place LMS suffixes at the end of their buckets
-        nfs = tails[text[s]]
-        SA[nfs] = s
-        tails[text[s]] -= 1
+    for i in range(m-1, -1, -1):  # place LMS suffixes at the end of their buckets
+        nfs = tails[text[lms[i]]]
+        SA[nfs] = lms[i]
+        tails[text[lms[i]]] -= 1
 
     for i in range(n):  # place the L-type suffixes at the fronts of their buckets
         if SA[i] > 0 and type_suffix[SA[i] - 1] == L_TYPE:
@@ -125,7 +122,7 @@ def induced_sorting(lms, tails, heads, SA, type_suffix, text, n, alpha, bucket_s
             heads[text[SA[i] - 1]] += 1
 
     # reset bucket counters
-    heads, tails = bucket_intervals(alpha, bucket_sizes)
+    heads, tails = bucket_intervals(alpha, bucket_sizes, sigma)
 
     for i in range(n-1, -1, -1):  # place the S-type suffixes at the ends of their buckets
         if SA[i] > 0 and type_suffix[SA[i] - 1] == S_TYPE:
@@ -135,7 +132,7 @@ def induced_sorting(lms, tails, heads, SA, type_suffix, text, n, alpha, bucket_s
 
 
 def blocks_are_equal(i, j, types, text, n):
-    """Testing for teh equality of two blocks"""
+    """Testing for the equality of two blocks"""
     while i < n and j < n:
         if text[i] == text[j]:
             if is_lms(i, types) and is_lms(j, types):
@@ -169,64 +166,125 @@ def get_reduced_substring(types, SA, lms, ordered_lms, text, n, m):
             k += 1
 
     # form the reduced substring
-    ipIS = array('i', [0] * SIGMA)
+
+    inverse_lms = array('l', [0] * n)
     for i in range(m):
-        ipIS[text[ordered_lms[i]]] = pIS[i]
+        inverse_lms[ordered_lms[i]] = pIS[i]
     for i in range(m):
-        pIS[i] = ipIS[text[lms[i]]]
+        pIS[i] = inverse_lms[lms[i]]
 
-    pIS.reverse()
-    return pIS, k == m
+    return pIS, k == m, k + 1
 
 
-def suffix_array(T, SA, n):
-    """Main method"""
+def construct_suffix_array(T, SA, n, sigma):
+    """Constructs the suffix array of T and stores it in SA
+    Args:
+        T: the text whose suffix array is to be built
+        SA: the array to be filled
+        n: the length of T and SA
+        sigma: the size of the alphabet of T, i.e the largest value in T
+
+        """
+    if len(T) == 1:  # special case
+        SA[0] = 0
+        return SA
 
     t = classify(T, n)  # step 1: classification
-    lms = find_lms_suffixes(t, n)  # step 2: finding the LMS suffixes
+    lms = find_lms_suffixes(t, n)  # step 2: finding the indices of LMS suffixes
     m = len(lms)
 
-    print_(t)
+    # print_types(t)
 
-    alpha, sizes = buckets(T)  # finding the bucket sizes and alphabet of T
-    heads, tails = bucket_intervals(alpha, sizes)
-    induced_sorting(lms, tails, heads, SA, t, T, n, alpha, sizes)   # first induced sort
+    alpha, sizes = buckets(T, sigma)  # finding the bucket sizes and alphabet of T
+    heads, tails = bucket_intervals(alpha, sizes, sigma)
+    induced_sorting(lms, tails, heads, SA, t, T, n, m, alpha, sizes, sigma)   # first induced sort
 
     ordered_lms = array('L', [0] * len(lms))
 
-    reduced_text, blocks_unique = get_reduced_substring(t, SA, lms, ordered_lms, T, n, m)
+    reduced_text, blocks_unique, sigma_reduced = get_reduced_substring(t, SA, lms, ordered_lms, T, n, m)
     reduced_SA = array('l', [-1] * m)  # reduced SA
     if blocks_unique:  # base case
         # compute suffix array manually
         for i in range(m):
             reduced_SA[reduced_text[i]] = i
     else:
-        suffix_array(reduced_text, reduced_SA, m)
-        # use the suffix array to sort the LMS suffixes
-        lms.reverse()
-        for i in range(m):
-            ordered_lms[i] = lms[reduced_SA[i]]
+        construct_suffix_array(reduced_text, reduced_SA, m, sigma_reduced)
 
-        heads, tails = bucket_intervals(alpha, sizes)  # reset counters
-        for i in range(n):  # clear suffix array
-            SA[i] = 0
-        induced_sorting(lms, tails, heads, SA, t, T, n, alpha, sizes)
+    # use the suffix array to sort the LMS suffixes
+    for i in range(m):
+        ordered_lms[i] = lms[reduced_SA[i]]
+
+    heads, tails = bucket_intervals(alpha, sizes, sigma)  # reset bucket tails and heads
+    for i in range(n):  SA[i] = 0  # clear suffix array
+    induced_sorting(ordered_lms, tails, heads, SA, t, T, n, m, alpha, sizes, sigma)
 
 
-def test_SA(T):
-    T += '$'
-    T = [ord(c) for c in T]
-    n = len(T)
+def bwt(T, SA: array, BWT: bytearray, n: int):
+    """If SA[i] = 0 then T[SA[i] - 1] = T[0 - 1] = T[-1] = '$"""
+    for i in range(n):
+        BWT[i] = T[SA[i] - 1]
+
+def isa(SA, ISA, n):
+    """Constructs an inverse suffix array"""
+    for i in range(n):
+        ISA[SA[i]] = i
+
+
+def fm_index(SA, ISA, LF, n):
+    """Constructs a last-to-first column mapping in linear time"""
+    for i in range(n):
+        if SA[i] == 0:
+            LF[i] = 0
+        else:
+            LF[i] = ISA[SA[i] - 1]
+
+
+def naive_suffix_array(s, n):
+    """Naive suffix array implementation, just as a sanity check"""
+    sa_tuple = sorted([(s[i:], i) for i in range(n)])
+    return array('l', map(lambda x: x[1], sa_tuple))
+
+def test_SA(text):
+    text += '$'
+    text = [ord(c) for c in text]
+    sigma = max(text) + 1
+    n = len(text)
     SA = array('l', [-1] * n)
-
-    suffix_array(T, SA, n)
+    construct_suffix_array(text, SA, n, sigma)
+    bt = bytearray(n)
+    # bwt(text, SA, bt, n)
+    # print(bt)
     return SA
 
 
 if __name__ == '__main__':
-    T = 'ACGTGCCTAGCCTACCGTGCC'
-    SA = test_SA(T)
-    with open('text.txt', 'r') as file:
-        data = file.read().replace('\n', '')
-    SA2 = test_SA(data)
-    print(SA2)
+    # T = 'Tomorrow_and_tomorrow_and_tomorrow'
+    # T = 'GTCCCGATGTCATGTCAGGA'
+    from random import choice
+
+    alpha = ['A', 'G', 'T', 'C']
+    input_size = 100_000
+
+    for _ in range(2):
+        T = ''.join([choice(alpha) for i in range(input_size)])
+        # print(SA)
+        # with open('st.txt', 'r') as file:
+        #     T = file.read().replace('\n', '')
+        tic = datetime.now()
+        SA = test_SA(T)
+        toc = datetime.now()
+        print("SA-IS ran in", (toc - tic).total_seconds(), "seconds for a string of size", input_size)
+
+        tic1 = datetime.now()
+        T += '$'
+        n = len(T)
+        nsa = naive_suffix_array(T, n)
+        toc1 = datetime.now()
+        print("Inbuilt ran in", (toc1 - tic1).total_seconds(), "seconds for a string of size", input_size)
+
+        print(len(nsa))
+
+        if nsa != SA:
+            print(nsa)
+            print(SA)
+            print(T)
