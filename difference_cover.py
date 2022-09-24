@@ -5,9 +5,9 @@ from array import array
 
 def construct_suffix_array(s):
     n = len(s) + 1
-    s += (chr(36) * 4)
+    s += chr(36) * 4
 
-    SA = array('l', [0 for _ in s])
+    SA = array("l", [0 for _ in s])
     alpha = sorted(set(s))
     difference_cover(s, SA, n, alpha)
     return SA[:-3]
@@ -27,7 +27,7 @@ def difference_cover(s, SA, n, alpha):
 
     s12.extend([0, 0, 0])
 
-    radixpass(s12, SA12, s[2:], n02, alpha)   # sort using third character .. s + 2
+    radixpass(s12, SA12, s[2:], n02, alpha)  # sort using third character .. s + 2
     radixpass(SA12, s12, s[1:], n02, alpha)  # sort using second character .. s + 1
     radixpass(s12, SA12, s, n02, alpha)  # sort using first character .. s
 
@@ -71,9 +71,15 @@ def difference_cover(s, SA, n, alpha):
         j = SA0[p] if p < n0 else 0
 
         if SA12[t] < n0:
-            test = (s12[SA12[t] + n0] <= s12[j // 3]) if (s[i] == s[j]) else (s[i] < s[j])
+            test = (
+                (s12[SA12[t] + n0] <= s12[j // 3]) if (s[i] == s[j]) else (s[i] < s[j])
+            )
         elif s[i] == s[j]:
-            test = s12[SA12[t] - n0 + 1] <= s12[j // 3 + n0] if (s[i + 1] == s[j + 1]) else s[i + 1] < s[j + 1]
+            test = (
+                s12[SA12[t] - n0 + 1] <= s12[j // 3 + n0]
+                if (s[i + 1] == s[j + 1])
+                else s[i + 1] < s[j + 1]
+            )
         else:
             test = s[i] < s[j]
 
@@ -94,7 +100,9 @@ def difference_cover(s, SA, n, alpha):
             if p == n0:
                 k += 1
                 while t < n02:
-                    SA[k] = (SA12[t] * 3) + 1 if SA12[t] < n0 else ((SA12[t] - n0) * 3) + 2
+                    SA[k] = (
+                        (SA12[t] * 3) + 1 if SA12[t] < n0 else ((SA12[t] - n0) * 3) + 2
+                    )
                     t += 1
                     k += 1
         k += 1
@@ -102,7 +110,7 @@ def difference_cover(s, SA, n, alpha):
 
 def radixpass(a, b, text, n, alpha):
     """The text is shifted by i = 2, 1, 0"""
-    c = {}    # an array can be used
+    c = {}  # an array can be used
     for char in alpha:
         c[char] = 0
 
@@ -123,8 +131,8 @@ def radixpass(a, b, text, n, alpha):
 
 def lcp_kasai(s, suffix_array):
     n = len(s)
-    rank = array('i', [0 for _ in range(n + 1)])
-    LCP = array('i', [0 for _ in range(n + 1)])
+    rank = array("i", [0 for _ in range(n + 1)])
+    LCP = array("i", [0 for _ in range(n + 1)])
     for i in range(n):
         rank[suffix_array[i]] = i
     h = 0
@@ -141,8 +149,8 @@ def lcp_kasai(s, suffix_array):
     return LCP
 
 
-if __name__ == '__main__':
-    t = 'yabbadabbadoo'
+if __name__ == "__main__":
+    t = "yabbadabbadoo"
     sa = construct_suffix_array(t)
     lcp = lcp_kasai(t, sa)
     print(sa, lcp)

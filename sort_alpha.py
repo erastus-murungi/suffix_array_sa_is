@@ -1,5 +1,6 @@
 from array import array
 
+
 def sort_alphabet_array(text):
     """Converts text to its corresponding integer alphabet representation"""
     sigma = 0
@@ -7,7 +8,7 @@ def sort_alphabet_array(text):
         if ord(c) > sigma:
             sigma = ord(c)
 
-    b = array('l', [0] * (sigma + 1))
+    b = array("l", [0] * (sigma + 1))
     for c in text:
         b[ord(c)] = 1
 
@@ -18,7 +19,7 @@ def sort_alphabet_array(text):
 
     w = {}
     r = 0
-    R = array('l')
+    R = array("l")
     for i in alpha:
         if i not in w:
             w[i] = r
